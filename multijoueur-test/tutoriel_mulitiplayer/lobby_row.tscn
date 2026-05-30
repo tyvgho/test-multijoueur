@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://e3jfepcw5a4h"]
+
+[ext_resource type="Script" uid="uid://drerocox1ajte" path="res://tutoriel_mulitiplayer/lobby_row.gd" id="1_ee3tr"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ee3tr"]
+bg_color = Color(0.14870432, 0.6902145, 0.61737657, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ja7uu"]
+bg_color = Color(0.9835797, 0.37984294, 0, 1)
+
+[node name="HBoxContainer" type="HBoxContainer" unique_id=1669159095 node_paths=PackedStringArray("lobby_name_label", "lobby_map_label", "lobby_players_label", "join_button")]
+offset_right = 40.0
+offset_bottom = 40.0
+theme_override_constants/separation = 20
+script = ExtResource("1_ee3tr")
+lobby_name_label = NodePath("LobbyName")
+lobby_map_label = NodePath("LobbyMap")
+lobby_players_label = NodePath("LobbyPlayers")
+join_button = NodePath("JoinButton")
+
+[node name="LobbyName" type="Label" parent="." unique_id=343250311]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0.9192522, 0.9192523, 0.9192521, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_ee3tr")
+theme_override_styles/focus = SubResource("StyleBoxFlat_ja7uu")
+text = "aaaaaaaaaaaaaaaa"
+
+[node name="LobbyMap" type="Label" parent="." unique_id=1712595036]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0.9192522, 0.9192523, 0.9192521, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_ee3tr")
+theme_override_styles/focus = SubResource("StyleBoxFlat_ja7uu")
+text = "aaaaaaaaaaaaaaaa"
+
+[node name="LobbyPlayers" type="Label" parent="." unique_id=1715351127]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0.9192522, 0.9192523, 0.9192521, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_ee3tr")
+theme_override_styles/focus = SubResource("StyleBoxFlat_ja7uu")
+text = "aaaaaaaaaaaaaaaa"
+
+[node name="JoinButton" type="Button" parent="." unique_id=954658987]
+layout_mode = 2
+text = "joind"
