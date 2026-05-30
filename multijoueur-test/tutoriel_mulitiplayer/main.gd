@@ -16,12 +16,16 @@ var is_host = false
 var is_joining = false
 
 func _ready():
-	print("Initializing Steam ",Steam.steamInit(480,true))
+	print("Initializing Steam ", Steam.steamInit(480, true))
 	Steam.initRelayNetworkAccess()
-
 	Steam.lobby_created.connect(_on_lobby_created)
 	Steam.lobby_joined.connect(_on_lobby_joined)
 
+	# Debug : affiche les méthodes de SteamMultiplayerPeer
+	var tmp = SteamMultiplayerPeer.new()
+	for m in tmp.get_method_list():
+		if "create" in m.name.to_lower():
+			print("METHOD: ", m.name, " args: ", m.args)
 
 func host_lobby():
 	join_button.disabled = true
@@ -82,11 +86,10 @@ func _on_lobby_joined(lobby_id, permissions, locked, response):
 
 	var owner_id : int = Steam.getLobbyOwner(lobby_id)
 	print("Owner ID : ", owner_id)
-
 	peer = SteamMultiplayerPeer.new()
-	# owner_id est un Steam ID 64-bit, on le passe directement SANS cast int()
-	var err = peer.create_client(owner_id)
-	print("create_client error code : ", err)
+	multiplayer.multiplayer_peer = peer
+	var err = peer.create_client(owner_id, true)  # use_relay explicite
+	print("create_client err: ", err)
 
 	if err != OK:
 		print("Échec create_client : ", err)
