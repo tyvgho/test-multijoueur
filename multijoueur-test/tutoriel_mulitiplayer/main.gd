@@ -70,7 +70,7 @@ func _on_lobby_created(result: int, new_lobby_id: int):
 	print("Lobby data set")
 
 	peer = SteamMultiplayerPeer.new()
-	var host_result = peer.create_host(0)
+	var host_result = peer.create_host(1)
 	print("create_host result: ", host_result)
 	multiplayer.multiplayer_peer = peer
 	print("multiplayer_peer assigné")
@@ -121,7 +121,7 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 
 	peer = SteamMultiplayerPeer.new()
 	print("Appel create_client(", lobby_id, ", 0)...")
-	var client_result = peer.create_client(lobby_id, 0)
+	var client_result = peer.create_client(lobby_id, 1)
 	print("create_client result: ", client_result)
 
 	multiplayer.multiplayer_peer = peer
@@ -201,3 +201,6 @@ func _on_join_button_pressed():
 
 func _on_id_prompt_text_changed(new_text: String):
 	join_button.disabled = (new_text.length() == 0)
+
+func _physics_process(delta):
+	Steam.run_callbacks()
