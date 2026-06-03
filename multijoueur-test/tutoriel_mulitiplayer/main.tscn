@@ -120,10 +120,11 @@ item/1/shapes = []
 item/1/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 item/1/navigation_layers = 1
 
-[node name="main" type="Node3D" unique_id=386242876 node_paths=PackedStringArray("host_button", "join_button", "id_prompt", "ui")]
+[node name="main" type="Node3D" unique_id=386242876 node_paths=PackedStringArray("host_button", "multiplayer_spawner", "join_button", "id_prompt", "ui")]
 script = ExtResource("1_u4xgq")
 player_scene = ExtResource("2_550xa")
 host_button = NodePath("Control/host_button")
+multiplayer_spawner = NodePath("MultiplayerSpawner")
 join_button = NodePath("Control/join_button")
 id_prompt = NodePath("Control/id_prompt")
 ui = NodePath("Control")
@@ -218,8 +219,6 @@ cell_size = Vector3(4, 4, 4)
 
 [node name="corridor-corner2" parent="." unique_id=1219728562 instance=ExtResource("6_nlwnv")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.399437, -2.5, 33.03122)
-
-[node name="Camera3D" type="Camera3D" parent="." unique_id=1141975568]
 
 [connection signal="pressed" from="Control/host_button" to="." method="_on_host_button_pressed"]
 [connection signal="pressed" from="Control/join_button" to="." method="_on_join_button_pressed"]

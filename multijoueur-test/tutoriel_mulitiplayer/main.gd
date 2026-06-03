@@ -15,6 +15,8 @@ var peer: SteamMultiplayerPeer
 var is_joining = false
 
 func _ready():
+	print("Initializing Steam ", Steam.steamInit(480, true))
+	Steam.initRelayNetworkAccess()
 	# On utilise le MultiplayerSpawner correctement :
 	# sa spawn_function est appelée quand on fait multiplayer_spawner.spawn(data)
 	multiplayer_spawner.spawn_function = summon_player
