@@ -34,7 +34,8 @@ func _ready():
 func host_lobby():
 	join_button.disabled = true
 	if USE_STEAM:
-		Steam.createLobby(Steam.LobbyType.LOBBY_TYPE_PUBLIC, 16)
+		# ← FRIENDS_ONLY pour les tests, tu pourras repasser en PUBLIC après
+		Steam.createLobby(Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY, 16)
 	else:
 		_host_local(7777)
 
@@ -52,20 +53,24 @@ func _on_lobby_created(result: int, new_lobby_id: int):
 	ui.visible = false
 	lobby_id = new_lobby_id
 
+	# ← Changer en FRIENDS_ONLY pour les tests entre amis
+	Steam.setLobbyType(lobby_id, Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY)
+
+	# ← Ajouter ceci : rendre le lobby joignable
+	Steam.setLobbyJoinable(lobby_id, true)
+
 	Steam.setLobbyData(lobby_id, "name", Steam.getPersonaName() + "'s lobby")
 	Steam.setLobbyData(lobby_id, "map", "level_01")
 	Steam.setLobbyData(lobby_id, "version", "1.0.0")
 
 	peer = SteamMultiplayerPeer.new()
-	peer.create_host(0)  # 0 = port virtuel Steam
-
-	# ← CORRECTION 1 : assigner le peer AVANT de spawner quoi que ce soit
+	peer.create_host(0)
 	multiplayer.multiplayer_peer = peer
 
-	# Instancier le personnage de l'hôte via le spawner
-	# Le MultiplayerSpawner va répliquer cet add_child aux clients qui
-	# rejoindront plus tard
 	_spawn_player(multiplayer.get_unique_id())
+
+	# ← Afficher l'ID du lobby pour le copier facilement
+	print("Lobby créé ! ID : ", lobby_id)
 
 # ── CLIENT ───────────────────────────────────────────────────────────────────
 
