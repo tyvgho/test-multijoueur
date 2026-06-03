@@ -35,7 +35,7 @@ func host_lobby():
 	join_button.disabled = true
 	if USE_STEAM:
 		# ← FRIENDS_ONLY pour les tests, tu pourras repasser en PUBLIC après
-		Steam.createLobby(Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY, 16)
+		Steam.createLobby(Steam.LobbyType.LOBBY_TYPE_PUBLIC, 16)
 	else:
 		_host_local(7777)
 
@@ -54,7 +54,7 @@ func _on_lobby_created(result: int, new_lobby_id: int):
 	lobby_id = new_lobby_id
 
 	# ← Changer en FRIENDS_ONLY pour les tests entre amis
-	Steam.setLobbyType(lobby_id, Steam.LobbyType.LOBBY_TYPE_FRIENDS_ONLY)
+	Steam.setLobbyType(lobby_id, Steam.LobbyType.LOBBY_TYPE_PUBLIC)
 
 	# ← Ajouter ceci : rendre le lobby joignable
 	Steam.setLobbyJoinable(lobby_id, true)
