@@ -1,121 +1,174 @@
+# main.gd
 extends Node3D
 
-
 var lobby_id = 0
-var peer : SteamMultiplayerPeer
-@export var player_scene : PackedScene
+var peer: SteamMultiplayerPeer
 
-@export var host_button : Button
-@export var join_button : Button
-@export var id_prompt : LineEdit
-
-@export var ui : Control
-
+@export var player_scene: PackedScene
+@export var host_button: Button
+@export var multiplayer_spawner: MultiplayerSpawner
+@export var join_button: Button
+@export var id_prompt: LineEdit
+@export var ui: Control
 @export var USE_STEAM = true
-var is_host = false
+
 var is_joining = false
 
 func _ready():
-	print("Initializing Steam ", Steam.steamInit(480, true))
-	Steam.initRelayNetworkAccess()
+	# On utilise le MultiplayerSpawner correctement :
+	# sa spawn_function est appelée quand on fait multiplayer_spawner.spawn(data)
+	multiplayer_spawner.spawn_function = summon_player
+
 	Steam.lobby_created.connect(_on_lobby_created)
 	Steam.lobby_joined.connect(_on_lobby_joined)
 
-	# Debug : affiche les méthodes de SteamMultiplayerPeer
-	var tmp = SteamMultiplayerPeer.new()
-	for m in tmp.get_method_list():
-		if "create" in m.name.to_lower():
-			print("METHOD: ", m.name, " args: ", m.args)
+	# Ces signaux viennent du MultiplayerAPI, pas de Steam
+	# On les connecte ici une seule fois
+	multiplayer.peer_connected.connect(_on_peer_connected)
+	multiplayer.peer_disconnected.connect(_remove_player)
+
+# ── HÔTE ────────────────────────────────────────────────────────────────────
 
 func host_lobby():
 	join_button.disabled = true
 	if USE_STEAM:
 		Steam.createLobby(Steam.LobbyType.LOBBY_TYPE_PUBLIC, 16)
-		is_host = true
 	else:
 		_host_local(7777)
 
 func _host_local(port: int):
-	var peer = ENetMultiplayerPeer.new()
-	peer.create_server(port, 16)
+	var enet_peer = ENetMultiplayerPeer.new()
+	enet_peer.create_server(port, 16)
+	multiplayer.multiplayer_peer = enet_peer  # ← IMPORTANT : assigner avant tout
+	_spawn_player(1)  # Instancier le joueur hôte
+
+func _on_lobby_created(result: int, new_lobby_id: int):
+	if result != Steam.Result.RESULT_OK:
+		print("Échec création lobby : ", result)
+		return
+
+	ui.visible = false
+	lobby_id = new_lobby_id
+
+	Steam.setLobbyData(lobby_id, "name", Steam.getPersonaName() + "'s lobby")
+	Steam.setLobbyData(lobby_id, "map", "level_01")
+	Steam.setLobbyData(lobby_id, "version", "1.0.0")
+
+	peer = SteamMultiplayerPeer.new()
+	peer.create_host(0)  # 0 = port virtuel Steam
+
+	# ← CORRECTION 1 : assigner le peer AVANT de spawner quoi que ce soit
 	multiplayer.multiplayer_peer = peer
-	multiplayer.peer_connected.connect(_add_player)
-	multiplayer.peer_disconnected.connect(_remove_player)
-	_add_player(1)
 
-func _on_lobby_created(result: int, lobby_id: int):
-	if result == Steam.Result.RESULT_OK:
-		self.lobby_id = lobby_id
-		Steam.setLobbyData(lobby_id, "name", Steam.getPersonaName() + "'s lobby")
-		Steam.setLobbyData(lobby_id, "map", "level_01")
-		Steam.setLobbyData(lobby_id, "version", "1.0.0")
+	# Instancier le personnage de l'hôte via le spawner
+	# Le MultiplayerSpawner va répliquer cet add_child aux clients qui
+	# rejoindront plus tard
+	_spawn_player(multiplayer.get_unique_id())
 
-		peer = SteamMultiplayerPeer.new()
-		peer.create_host(true)
-		multiplayer.multiplayer_peer = peer   # ✅ manquait dans ton code
-		multiplayer.peer_connected.connect(_add_player)
-		multiplayer.peer_disconnected.connect(_remove_player)
-		_add_player(1)
-		ui.visible = false
-		print("Lobby created with id ", lobby_id)
-func join_lobby(lobby_id : int):
+# ── CLIENT ───────────────────────────────────────────────────────────────────
+
+func join_lobby(target_lobby_id: int):
 	if USE_STEAM:
 		is_joining = true
-		Steam.joinLobby(lobby_id)
+		Steam.joinLobby(target_lobby_id)
 	else:
 		_join_local("127.0.0.1", 7777)
 
 func _join_local(ip: String, port: int):
-	var peer = ENetMultiplayerPeer.new()
-	peer.create_client(ip, port)
-	multiplayer.multiplayer_peer = peer
+	var enet_peer = ENetMultiplayerPeer.new()
+	enet_peer.create_client(ip, port)
+	multiplayer.multiplayer_peer = enet_peer
 
-func _on_lobby_joined(lobby_id, permissions, locked, response):
-	print("_on_lobby_joined -> id:%s perm:%s locked:%s response:%s" % [lobby_id, permissions, locked, response])
-
-	if int(response) != 1:
-		print("Échec de la connexion, code : ", response)
+func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, response: int):
+	if response != Steam.ChatRoomEnterResponse.CHAT_ROOM_ENTER_RESPONSE_SUCCESS:
+		print("Échec connexion lobby : ", response)
 		is_joining = false
 		return
 
-	if !is_joining:
+	if not is_joining:
 		return
 
 	ui.visible = false
-	self.lobby_id = int(lobby_id)
-
-	var owner_id : int = Steam.getLobbyOwner(lobby_id)
-	print("Owner ID : ", owner_id)
-	peer = SteamMultiplayerPeer.new()
-	multiplayer.multiplayer_peer = peer
-	var err = peer.create_client(owner_id, true)  # use_relay explicite
-	print("create_client err: ", err)
-
-	if err != OK:
-		print("Échec create_client : ", err)
-		is_joining = false
-		return
-
-	multiplayer.multiplayer_peer = peer
+	lobby_id = joined_lobby_id
 	is_joining = false
-	print("Peer client créé, owner : ", owner_id)
 
-func _add_player(player_id : int):
+	peer = SteamMultiplayerPeer.new()
+	peer.create_client(lobby_id, 0)
+
+	# ← CORRECTION 2 : assigner le peer AVANT tout RPC ou spawn
+	# Le signal peer_connected se déclenchera automatiquement une fois connecté
+	multiplayer.multiplayer_peer = peer
+
+	# NE PAS appeler _add_player ici manuellement.
+	# Le signal multiplayer.connected_to_server va gérer ça proprement.
+	multiplayer.connected_to_server.connect(_on_connected_to_server, CONNECT_ONE_SHOT)
+
+func _on_connected_to_server():
+	# On est maintenant connecté, on connaît notre vrai peer ID
+	# On demande à l'hôte de nous spawner
+	var my_id = multiplayer.get_unique_id()
+	print("Connecté au serveur, mon ID : ", my_id)
+	# Demander à l'hôte de spawner notre personnage pour tout le monde
+	request_spawn.rpc_id(1, my_id)
+
+# ── GESTION DES PEERS ────────────────────────────────────────────────────────
+
+func _on_peer_connected(player_id: int):
+	# Ce signal est déclenché sur l'hôte quand un client se connecte,
+	# ET sur tous les clients quand un nouveau pair arrive.
+	# L'hôte gère le spawn ; les clients reçoivent via le MultiplayerSpawner.
+	print("Peer connecté : ", player_id)
+	if multiplayer.is_server():
+		# L'hôte spawne le joueur pour tout le monde
+		_spawn_player(player_id)
+
+func _remove_player(player_id: int):
+	var node_path = str(player_id)
+	if has_node(node_path):
+		get_node(node_path).queue_free()
+
+# ── SPAWN ────────────────────────────────────────────────────────────────────
+
+# Appelé par le client sur l'hôte pour demander son spawn
+# (utile si peer_connected n'est pas fiable dans ton setup Steam)
+@rpc("any_peer", "call_local", "reliable")
+func request_spawn(player_id: int):
+	print("Demande de spawn de ", player_id)
+	# Seul l'hôte exécute réellement le spawn
+	if not multiplayer.is_server():
+		return
+	# Éviter un double spawn si peer_connected l'a déjà fait
+	if not has_node(str(player_id)):
+		_spawn_player(player_id)
+
+func _spawn_player(player_id: int):
+	# ← CORRECTION 3 : on passe par le MultiplayerSpawner
+	# Il va appeler summon_player(player_id) et répliquer le nœud
+	# automatiquement sur tous les clients connectés ET futurs.
+	if has_node(str(player_id)):
+		print("Joueur ", player_id, " déjà spawné, on ignore")
+		return
+	multiplayer_spawner.spawn(player_id)
+
+func summon_player(player_id: int) -> Node:
 	var player = player_scene.instantiate()
 	player.name = str(player_id)
-	call_deferred("add_child",player)
 
-func _remove_player(player_id : int):
-	if !self.has_node(str(player_id)): return
-	self.get_node(str(player_id)).queue_free()
+	# ← CORRECTION 4 : set_multiplayer_authority AVANT add_child
+	# Comme summon_player est appelé par le spawner qui fait add_child ensuite,
+	# on peut déjà configurer l'autorité ici.
+	player.set_multiplayer_authority(player_id)
 
-func _on_host_button_pressed() -> void:
+	print("Spawn joueur ", player_id, " | autorité : ", player_id)
+	return player
+
+# ── UI ───────────────────────────────────────────────────────────────────────
+
+func _on_host_button_pressed():
 	host_lobby()
 
+func _on_join_button_pressed():
+	join_lobby(int(id_prompt.text))
 
-func _on_id_prompt_text_changed(new_text: String) -> void:
-	join_button.disabled =(new_text.length() == 0)
-
-
-func _on_join_button_pressed() -> void:
-	join_lobby(int(id_prompt.text.to_int()))
+func _on_id_prompt_text_changed(new_text: String):
+	join_button.disabled = (new_text.length() == 0)
