@@ -15,9 +15,10 @@ var peer: SteamMultiplayerPeer
 var is_joining = false
 
 func _ready():
-	print("=== READY ===")
-	var init = Steam.steamInit(480, true)
-	print("Steam init result: ", init)
+	OS.set_environment("SteamAppID", str(4298210))
+	OS.set_environment("SteamGameID", str(4298210))
+	Steam.steamInit(false,4298210)
+	print("Steam init result: ")
 	print("Steam App ID: ", Steam.getAppID())
 	print("Mon Steam ID: ", Steam.getSteamID())
 	print("Mon pseudo Steam: ", Steam.getPersonaName())
