@@ -152,9 +152,9 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 
 	multiplayer.connected_to_server.connect(_on_connected_to_server, CONNECT_ONE_SHOT)
 	multiplayer.connection_failed.connect(_on_connection_failed, CONNECT_ONE_SHOT)
-	_spawn_player(multiplayer.get_unique_id())
-	await get_tree().create_timer(5.0).timeout
 
+	await get_tree().create_timer(5.0).timeout
+	_spawn_player(multiplayer.get_unique_id())
 	print("===== APRÈS 5 SECONDES =====")
 	print("Connection status : ", peer.get_connection_status())
 	print("Mon unique_id : ", multiplayer.get_unique_id())
@@ -214,7 +214,7 @@ func _spawn_player(player_id: int):
 		print("Joueur ", player_id, " déjà présent, skip")
 		return
 	print("Appel multiplayer_spawner.spawn(", player_id, ")")
-	multiplayer_spawner.spawn(player_id)
+	multiplayer_spawner.add_child(summon_player(player_id),true)
 	print("Spawn OK pour ", player_id)
 
 func summon_player(player_id: int) -> Node:
