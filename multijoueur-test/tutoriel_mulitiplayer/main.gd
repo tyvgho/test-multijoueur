@@ -98,14 +98,11 @@ func _join_local(ip: String, port: int):
 	multiplayer.multiplayer_peer = enet_peer
 
 func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, response: int):
+	print("un joueur ces conecter au lobby")
 	print("=== LOBBY JOINED === id:", joined_lobby_id, " response:", response, " is_joining:", is_joining)
 	if response != Steam.ChatRoomEnterResponse.CHAT_ROOM_ENTER_RESPONSE_SUCCESS:
 		print("ERREUR connexion lobby code: ", response)
 		is_joining = false
-		return
-
-	if not is_joining:
-		print("ATTENTION : lobby_joined reçu mais is_joining=false, on ignore")
 		return
 
 	ui.visible = false
