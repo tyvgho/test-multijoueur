@@ -27,7 +27,7 @@ func request_lobby_list():
 		"version", "1.0.0",
 		Steam.LobbyComparison.LOBBY_COMPARISON_EQUAL
 	)
-	Steam.addRequestLobbyListFilterSlotsAvailable(1)   # au moins 1 place libre
+	Steam.addRequestLobbyListFilterSlotsAvailable(2)   # au moins 1 place libre
 
 	Steam.requestLobbyList()
 

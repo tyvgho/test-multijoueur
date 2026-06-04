@@ -11,8 +11,12 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var camera : Camera3D
 
 func _ready():
+
 	set_multiplayer_authority(name.to_int())
+	print(is_multiplayer_authority())
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if is_multiplayer_authority():
+		camera.current = true
 
 func _input(event):
 	if not is_multiplayer_authority(): return

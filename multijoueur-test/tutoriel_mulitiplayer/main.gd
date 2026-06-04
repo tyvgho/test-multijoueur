@@ -202,5 +202,17 @@ func _on_join_button_pressed():
 func _on_id_prompt_text_changed(new_text: String):
 	join_button.disabled = (new_text.length() == 0)
 
+# autres
 func _physics_process(delta):
 	Steam.run_callbacks()
+	if Input.is_action_just_pressed("ui_down"):
+		print_loby_info(lobby_id)
+
+func print_loby_info(id):
+	print("ID du lobby: ", id)
+	print("Nom du lobby: ", Steam.getLobbyData(id, "name"))
+	print("Map: ", Steam.getLobbyData(id, "map"))
+	print("Version: ", Steam.getLobbyData(id, "version"))
+	print("Membres: ", Steam.getNumLobbyMembers(id))
+	print("Limite de membres: ", Steam.getLobbyMemberLimit(id))
+	print("player nobres", Steam.getLobbyData(id, "players"))
