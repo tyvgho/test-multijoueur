@@ -10,7 +10,7 @@ var peer: SteamMultiplayerPeer
 @export var join_button: Button
 @export var id_prompt: LineEdit
 @export var ui: Control
-@export var USE_STEAM = true
+@export var USE_STEAM = false
 
 var is_joining = false
 
@@ -214,7 +214,7 @@ func _spawn_player(player_id: int):
 		print("Joueur ", player_id, " déjà présent, skip")
 		return
 	print("Appel multiplayer_spawner.spawn(", player_id, ")")
-	multiplayer_spawner.add_child(summon_player(player_id),true)
+	add_child(summon_player(player_id),true)
 	print("Spawn OK pour ", player_id)
 
 func summon_player(player_id: int) -> Node:

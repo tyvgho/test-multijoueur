@@ -21,14 +21,7 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var camera : Camera3D
 
 func _ready():
-	# CORRECTION BUG #1 : on NE REMET PAS set_multiplayer_authority ici.
-	# Elle a déjà été appelée dans summon_player() de main.gd, AVANT
-	# que le node soit ajouté au SceneTree. Appeler name.to_int() ici
-	# est risqué car le name peut ne pas encore être défini selon le timing.
-	# main.gd est la source de vérité pour l'autorité.
-
 	print("joueur _ready | name=", name, " | is_authority=", is_multiplayer_authority())
-
 	# CORRECTION BUG #4 : mouse capture uniquement pour le joueur local
 	if is_multiplayer_authority():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
