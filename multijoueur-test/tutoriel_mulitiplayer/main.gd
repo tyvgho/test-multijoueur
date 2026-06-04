@@ -239,11 +239,13 @@ func print_loby_info(id):
 
 
 func _on_lobby_chat_update(
+
 	lobby_id: int,
 	changed_id: int,
 	making_change_id: int,
 	chat_state: int
 ):
+	_spawn_player(changed_id)
 	print("Lobby update")
 
 	if chat_state == Steam.CHAT_MEMBER_STATE_CHANGE_ENTERED:
@@ -251,3 +253,4 @@ func _on_lobby_chat_update(
 
 	elif chat_state == Steam.CHAT_MEMBER_STATE_CHANGE_LEFT:
 		print("Le joueur ", changed_id, " a quitté le lobby")
+	
