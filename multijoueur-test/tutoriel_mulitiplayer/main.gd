@@ -134,24 +134,39 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 		print("  Membre ", i, " : ", Steam.getLobbyMemberByIndex(lobby_id, i))
 
 	peer = SteamMultiplayerPeer.new()
-	print("Appel create_client(", lobby_id, ", 0)...")
+
+	print("====================================")
+	print("CRÉATION DU CLIENT STEAM")
+	print("Lobby ID : ", lobby_id)
+
 	var client_result = peer.create_client(lobby_id, 0)
-	print("create_client result: ", client_result)
+
+	print("create_client result : ", client_result)
 
 	multiplayer.multiplayer_peer = peer
-	print("multiplayer_peer assigné côté client")
-	print("Mon peer ID (avant connexion): ", multiplayer.get_unique_id())
-	print("Status peer après assignation: ", peer.get_connection_status())
+
+	print("multiplayer_peer assigné")
+	print("Mon unique_id actuel : ", multiplayer.get_unique_id())
+	print("Connection status immédiat : ", peer.get_connection_status())
 
 	multiplayer.connected_to_server.connect(_on_connected_to_server, CONNECT_ONE_SHOT)
 	multiplayer.connection_failed.connect(_on_connection_failed, CONNECT_ONE_SHOT)
-	print("Signaux connected_to_server et connection_failed connectés, en attente...")
+
+	await get_tree().create_timer(5.0).timeout
+
+	print("===== APRÈS 5 SECONDES =====")
+	print("Connection status : ", peer.get_connection_status())
+	print("Mon unique_id : ", multiplayer.get_unique_id())
+	print("============================")
 
 func _on_connection_failed():
 	print("!!! CONNEXION AU SERVEUR ÉCHOUÉE !!!")
 
 func _on_connected_to_server():
-	print("=== CONNECTED TO SERVER ===")
+	print("")
+	print("#################################")
+	print("CONNECTED TO SERVER")
+	print("#################################")
 	var my_id = multiplayer.get_unique_id()
 	print("Mon peer ID (après connexion): ", my_id)
 	# CORRECTION BUG #3 : seul mécanisme de spawn pour le client
@@ -162,10 +177,13 @@ func _on_connected_to_server():
 # ── GESTION DES PEERS ────────────────────────────────────────────────────────
 
 func _on_peer_connected(player_id: int):
-	# CORRECTION BUG #3 : l'hôte N'instancie PAS le client ici.
-	# Le client demandera lui-même son spawn via request_spawn RPC.
-	# Ce signal sert uniquement à du logging ou de la logique de lobby.
-	print("=== PEER CONNECTED === player_id:", player_id, " | je suis serveur:", multiplayer.is_server())
+	print("")
+	print("#################################")
+	print("PEER CONNECTED")
+	print("player_id = ", player_id)
+	print("je suis serveur = ", multiplayer.is_server())
+	print("#################################")
+	print("")
 
 func _remove_player(player_id: int):
 	print("=== PEER DISCONNECTED === player_id:", player_id)
@@ -223,11 +241,19 @@ func _on_join_button_pressed():
 func _on_id_prompt_text_changed(new_text: String):
 	join_button.disabled = (new_text.length() == 0)
 
+var last_peer_status
 func _physics_process(_delta):
 	Steam.run_callbacks()
+
+	if peer:
+		var status = peer.get_connection_status()
+
+		if status != last_peer_status:
+			last_peer_status = status
+			print("SteamMultiplayerPeer status changé -> ", status)
+
 	if Input.is_action_just_pressed("ui_down"):
 		print_loby_info(lobby_id)
-
 func print_loby_info(id):
 	print("ID du lobby: ", id)
 	print("Nom du lobby: ", Steam.getLobbyData(id, "name"))
@@ -245,7 +271,6 @@ func _on_lobby_chat_update(
 	making_change_id: int,
 	chat_state: int
 ):
-	_spawn_player(changed_id)
 	print("Lobby update")
 
 	if chat_state == Steam.CHAT_MEMBER_STATE_CHANGE_ENTERED:
