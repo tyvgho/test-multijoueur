@@ -1,3 +1,13 @@
+# joueur.gd
+# IMPORTANT : dans ta scène joueur (CharacterBody3D), tu dois ajouter
+# un nœud enfant MultiplayerSynchronizer nommé "MultiplayerSynchronizer".
+# Configure-le dans l'éditeur avec les propriétés à synchroniser :
+#   - position (Vector3)
+#   - rotation (Vector3)
+#   - velocity (Vector3)  [optionnel, pour interpolation]
+# Mets "Replication Mode" sur "Always" ou "On Change".
+# L'autorité (root_path) doit pointer sur le CharacterBody3D parent.
+
 extends CharacterBody3D
 
 @export var walk_speed : float = 5.0
@@ -11,18 +21,26 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var camera : Camera3D
 
 func _ready():
+	# CORRECTION BUG #1 : on NE REMET PAS set_multiplayer_authority ici.
+	# Elle a déjà été appelée dans summon_player() de main.gd, AVANT
+	# que le node soit ajouté au SceneTree. Appeler name.to_int() ici
+	# est risqué car le name peut ne pas encore être défini selon le timing.
+	# main.gd est la source de vérité pour l'autorité.
 
-	set_multiplayer_authority(name.to_int())
-	print(is_multiplayer_authority())
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	print("joueur _ready | name=", name, " | is_authority=", is_multiplayer_authority())
+
+	# CORRECTION BUG #4 : mouse capture uniquement pour le joueur local
 	if is_multiplayer_authority():
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		camera.current = true
+	else:
+		# Désactiver la caméra des autres joueurs pour éviter les conflits
+		camera.current = false
 
 func _input(event):
 	if not is_multiplayer_authority(): return
 	if event is InputEventMouseMotion:
 		rotate_y(-event.relative.x * mouse_sensitivity)
-
 		camera_pivot.rotate_x(-event.relative.y * mouse_sensitivity)
 		camera_pivot.rotation.x = clamp(
 			camera_pivot.rotation.x,
@@ -34,6 +52,9 @@ func _input(event):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _physics_process(delta):
+	# CORRECTION BUG #5 : le mouvement n'est calculé que par l'autorité locale.
+	# Le MultiplayerSynchronizer (configuré dans la scène) se charge de
+	# répliquer position/rotation vers tous les autres peers.
 	if not is_multiplayer_authority(): return
 
 	if not is_on_floor():
@@ -42,10 +63,7 @@ func _physics_process(delta):
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
 
-	var speed = walk_speed
-
-	if Input.is_action_pressed("sprint"):
-		speed = sprint_speed
+	var speed = sprint_speed if Input.is_action_pressed("sprint") else walk_speed
 
 	var input_dir = Input.get_vector(
 		"move_left",

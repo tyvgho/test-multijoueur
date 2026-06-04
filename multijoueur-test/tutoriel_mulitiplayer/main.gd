@@ -12,7 +12,7 @@ var peer: SteamMultiplayerPeer
 @export var ui: Control
 @export var USE_STEAM = true
 
-var is_joining = true
+var is_joining = false
 
 func _ready():
 	print("=== READY ===")
@@ -23,12 +23,16 @@ func _ready():
 	print("Mon pseudo Steam: ", Steam.getPersonaName())
 	Steam.initRelayNetworkAccess()
 
+	# CORRECTION BUG #2 : la spawn_function DOIT être assignée avant tout spawn
 	multiplayer_spawner.spawn_function = summon_player
 	print("spawn_function assignée")
 
 	Steam.lobby_created.connect(_on_lobby_created)
 	Steam.lobby_joined.connect(_on_lobby_joined)
-	multiplayer.peer_connected.connect(_on_peer_connected)
+
+	# CORRECTION BUG #3 : on supprime _on_peer_connected de la connexion
+	# Le spawn du client sera géré uniquement via request_spawn RPC
+	# L'hôte se spawn lui-même dans _on_lobby_created / _host_local
 	multiplayer.peer_disconnected.connect(_remove_player)
 	print("=== READY OK ===")
 
@@ -48,6 +52,8 @@ func _host_local(port: int):
 	var enet_peer = ENetMultiplayerPeer.new()
 	enet_peer.create_server(port, 16)
 	multiplayer.multiplayer_peer = enet_peer
+	# Connexion du signal APRÈS avoir assigné le peer
+	multiplayer.peer_connected.connect(_on_peer_connected)
 	_spawn_player(1)
 
 func _on_lobby_created(result: int, new_lobby_id: int):
@@ -76,6 +82,9 @@ func _on_lobby_created(result: int, new_lobby_id: int):
 	print("multiplayer_peer assigné")
 	print("Mon peer ID (hôte): ", multiplayer.get_unique_id())
 
+	# CORRECTION BUG #3 : connexion du signal APRÈS avoir assigné le peer
+	multiplayer.peer_connected.connect(_on_peer_connected)
+
 	_spawn_player(multiplayer.get_unique_id())
 	print(">>> LOBBY ID À DONNER AU CLIENT : ", lobby_id, " <<<")
 
@@ -96,13 +105,10 @@ func _join_local(ip: String, port: int):
 	var enet_peer = ENetMultiplayerPeer.new()
 	enet_peer.create_client(ip, port)
 	multiplayer.multiplayer_peer = enet_peer
+	multiplayer.connected_to_server.connect(_on_connected_to_server, CONNECT_ONE_SHOT)
+	multiplayer.connection_failed.connect(_on_connection_failed, CONNECT_ONE_SHOT)
 
 func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, response: int):
-	print("Lobby :", joined_lobby_id)
-	print("Permissions :", _permissions)
-	print("Locked :", _locked)
-	print("Response :", response)
-	print("un joueur ces conecter au lobby")
 	print("=== LOBBY JOINED === id:", joined_lobby_id, " response:", response, " is_joining:", is_joining)
 	if response != Steam.ChatRoomEnterResponse.CHAT_ROOM_ENTER_RESPONSE_SUCCESS:
 		print("ERREUR connexion lobby code: ", response)
@@ -118,7 +124,6 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 	is_joining = false
 	print("Lobby rejoint avec succès, lobby_id=", lobby_id)
 
-	# Vérifier les membres du lobby
 	var member_count = Steam.getNumLobbyMembers(lobby_id)
 	print("Membres dans le lobby: ", member_count)
 	for i in member_count:
@@ -144,15 +149,18 @@ func _on_connected_to_server():
 	print("=== CONNECTED TO SERVER ===")
 	var my_id = multiplayer.get_unique_id()
 	print("Mon peer ID (après connexion): ", my_id)
+	# CORRECTION BUG #3 : seul mécanisme de spawn pour le client
+	# On envoie l'RPC à l'hôte (peer 1) pour qu'il nous spawne
 	print("Envoi request_spawn.rpc_id(1, ", my_id, ")")
 	request_spawn.rpc_id(1, my_id)
 
 # ── GESTION DES PEERS ────────────────────────────────────────────────────────
 
 func _on_peer_connected(player_id: int):
+	# CORRECTION BUG #3 : l'hôte N'instancie PAS le client ici.
+	# Le client demandera lui-même son spawn via request_spawn RPC.
+	# Ce signal sert uniquement à du logging ou de la logique de lobby.
 	print("=== PEER CONNECTED === player_id:", player_id, " | je suis serveur:", multiplayer.is_server())
-	if multiplayer.is_server():
-		_spawn_player(player_id)
 
 func _remove_player(player_id: int):
 	print("=== PEER DISCONNECTED === player_id:", player_id)
@@ -188,6 +196,9 @@ func _spawn_player(player_id: int):
 func summon_player(player_id: int) -> Node:
 	print("=== SUMMON PLAYER === player_id:", player_id)
 	var player = player_scene.instantiate()
+	# CORRECTION BUG #1 : on nomme le node AVANT de retourner,
+	# mais set_multiplayer_authority doit être fait ICI, pas dans _ready() du joueur,
+	# car le name est déjà correct ici.
 	player.name = str(player_id)
 	player.set_multiplayer_authority(player_id)
 	print("Joueur instancié: ", player.name, " | autorité: ", player.get_multiplayer_authority())
@@ -207,8 +218,7 @@ func _on_join_button_pressed():
 func _on_id_prompt_text_changed(new_text: String):
 	join_button.disabled = (new_text.length() == 0)
 
-# autres
-func _physics_process(delta):
+func _physics_process(_delta):
 	Steam.run_callbacks()
 	if Input.is_action_just_pressed("ui_down"):
 		print_loby_info(lobby_id)
