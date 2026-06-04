@@ -152,7 +152,7 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 
 	multiplayer.connected_to_server.connect(_on_connected_to_server, CONNECT_ONE_SHOT)
 	multiplayer.connection_failed.connect(_on_connection_failed, CONNECT_ONE_SHOT)
-	request_spawn.rpc_id(1, multiplayer.get_unique_id())
+	_spawn_player(multiplayer.get_unique_id())
 	await get_tree().create_timer(5.0).timeout
 
 	print("===== APRÈS 5 SECONDES =====")
