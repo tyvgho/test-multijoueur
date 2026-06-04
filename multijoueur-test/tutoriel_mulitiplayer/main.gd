@@ -29,6 +29,7 @@ func _ready():
 
 	Steam.lobby_created.connect(_on_lobby_created)
 	Steam.lobby_joined.connect(_on_lobby_joined)
+	Steam.lobby_chat_update.connect(_on_lobby_chat_update)
 
 	# CORRECTION BUG #3 : on supprime _on_peer_connected de la connexion
 	# Le spawn du client sera géré uniquement via request_spawn RPC
@@ -235,3 +236,18 @@ func print_loby_info(id):
 	print("Membres: ", Steam.getNumLobbyMembers(id))
 	print("Limite de membres: ", Steam.getLobbyMemberLimit(id))
 	print("player nobres", Steam.getLobbyData(id, "players"))
+
+
+func _on_lobby_chat_update(
+	lobby_id: int,
+	changed_id: int,
+	making_change_id: int,
+	chat_state: int
+):
+	print("Lobby update")
+
+	if chat_state == Steam.CHAT_MEMBER_STATE_CHANGE_ENTERED:
+		print("Le joueur ", changed_id, " a rejoint le lobby")
+
+	elif chat_state == Steam.CHAT_MEMBER_STATE_CHANGE_LEFT:
+		print("Le joueur ", changed_id, " a quitté le lobby")
