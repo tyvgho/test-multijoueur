@@ -76,7 +76,10 @@ func _on_lobby_created(result: int, new_lobby_id: int):
 	print("Lobby data set")
 
 	peer = SteamMultiplayerPeer.new()
-	var host_result = peer.create_host(1)
+	# CORRECTION : virtual port 0 pour correspondre au create_client(lobby_id, 0) du client
+	# create_host/create_client utilisent un "Virtual Port" (0–255), pas un vrai port réseau.
+	# Les deux DOIVENT utiliser la même valeur, sinon la connexion ne s'établit jamais.
+	var host_result = peer.create_host(0)
 	print("create_host result: ", host_result)
 	multiplayer.multiplayer_peer = peer
 	print("multiplayer_peer assigné")
@@ -137,6 +140,7 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 	multiplayer.multiplayer_peer = peer
 	print("multiplayer_peer assigné côté client")
 	print("Mon peer ID (avant connexion): ", multiplayer.get_unique_id())
+	print("Status peer après assignation: ", peer.get_connection_status())
 
 	multiplayer.connected_to_server.connect(_on_connected_to_server, CONNECT_ONE_SHOT)
 	multiplayer.connection_failed.connect(_on_connection_failed, CONNECT_ONE_SHOT)
