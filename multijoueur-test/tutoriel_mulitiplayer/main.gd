@@ -273,7 +273,7 @@ func _on_lobby_chat_update(
 	chat_state: int
 ):
 	print("Lobby update")
-
+	_on_lobby_joined(lobby_id, changed_id, making_change_id, chat_state)
 	if chat_state == Steam.CHAT_MEMBER_STATE_CHANGE_ENTERED:
 		print("Le joueur ", changed_id, " a rejoint le lobby")
 
